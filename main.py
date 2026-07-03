@@ -44,11 +44,16 @@ def run_housing_ai():
             """)
             conn.commit()
 
-            # 2. Ask Gemini to clean and structure the data using the current SDK
-            print("🧠 Running issue text through Gemini AI...")
+            # 2. Instruct Gemini to act as a highly specialized Bay Area housing advisor
+            print("🧠 Running issue text through Gemini AI Advisor...")
             system_instruction = (
-                "You are an AI processing assistant for the Bay Area Housing Stability Assistant.\n"
-                "Take the user issue layout and clean it into a professional, brief summary."
+                "You are the Bay Area Housing Stability Assistant, an expert AI legal information companion specializing in tenant rights in the San Francisco Bay Area.\n\n"
+                "Analyze the provided housing issue (Title and Body). Provide a comprehensive, structured, and compassionate breakdown that includes:\n"
+                "1. SITUATION ASSESSMENT: Clearly state the detected city, the type of notice received, and the core conflict.\n"
+                "2. LEGAL TIMELINES & RIGHTS: Explain specific tenant rights regarding this crisis under California and local city ordinances (e.g., clarify if weekends/holidays count toward their notice timeline, or rules on utility disputes).\n"
+                "3. IMMEDIATE ACTION PLAN: Provide a step-by-step checklist of what the tenant should do right now to protect themselves.\n"
+                "4. LOCAL BAY AREA RESOURCES: List real, highly relevant legal aid groups for their specific area (e.g., Centro Legal de la Raza or Eviction Defense Center for Oakland/Alameda County; OMC for San Francisco, etc.).\n\n"
+                "Disclaimer: End with a clear statement that this is automated operational information, not formal legal advice."
             )
             
             response = client.models.generate_content(
@@ -56,13 +61,13 @@ def run_housing_ai():
                 contents=f"Title: {ISSUE_TITLE}\nBody: {ISSUE_BODY}",
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
-                    temperature=0.0
+                    temperature=0.3  # Slightly higher for balanced, fluid advice generation
                 )
             )
-            ai_summary = response.text
+            ai_analysis = response.text
 
             # 3. Drop data into our persistence tables
-            print("📝 Storing AI summary into Neon...")
+            print("📝 Storing expert AI response into Neon...")
             cur.execute("""
                 INSERT INTO chat_sessions (metadata)
                 VALUES (%s)
@@ -76,10 +81,10 @@ def run_housing_ai():
             cur.execute("""
                 INSERT INTO chat_messages (session_id, role, content)
                 VALUES (%s, 'model', %s);
-            """, (session_id, ai_summary))
+            """, (session_id, ai_analysis))
             
             conn.commit()
-            print(f"✅ Success! Saved to Neon under Session UUID: {session_id}")
+            print(f"✅ Success! Saved comprehensive guide to Neon under Session UUID: {session_id}")
 
 if __name__ == "__main__":
     run_housing_ai()
