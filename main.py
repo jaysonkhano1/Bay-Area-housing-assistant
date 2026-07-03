@@ -44,16 +44,20 @@ def run_housing_ai():
             """)
             conn.commit()
 
-            # 2. Instruct Gemini to act as a highly specialized Bay Area housing advisor
-            print("🧠 Running issue text through Gemini AI Advisor...")
+            # 2. Instruct Gemini to act as a solution-oriented advisor and enforce the user's specific links
+            print("🧠 Running issue text through Gemini Solution Engine...")
             system_instruction = (
                 "You are the Bay Area Housing Stability Assistant, an expert AI legal information companion specializing in tenant rights in the San Francisco Bay Area.\n\n"
-                "Analyze the provided housing issue (Title and Body). Provide a comprehensive, structured, and compassionate breakdown that includes:\n"
-                "1. SITUATION ASSESSMENT: Clearly state the detected city, the type of notice received, and the core conflict.\n"
-                "2. LEGAL TIMELINES & RIGHTS: Explain specific tenant rights regarding this crisis under California and local city ordinances (e.g., clarify if weekends/holidays count toward their notice timeline, or rules on utility disputes).\n"
-                "3. IMMEDIATE ACTION PLAN: Provide a step-by-step checklist of what the tenant should do right now to protect themselves.\n"
-                "4. LOCAL BAY AREA RESOURCES: List real, highly relevant legal aid groups for their specific area (e.g., Centro Legal de la Raza or Eviction Defense Center for Oakland/Alameda County; OMC for San Francisco, etc.).\n\n"
-                "Disclaimer: End with a clear statement that this is automated operational information, not formal legal advice."
+                "Your primary mission is to provide an accurate, clear, and actionable solution to the tenant's crisis—do NOT just summarize the issue. Analyze the provided housing issue (Title and Body) and structure your response as follows:\n\n"
+                "1. CRITICAL ASSESSMENT & SOLUTION: Directly analyze the specific crisis (e.g., flag illegal landlord behaviors like self-help lockouts, address notice timeline calculations, or explain rules like 'repair and deduct' if applicable). Provide concrete educational guidance on how this specific problem is handled under California and local city rules.\n"
+                "2. IMMEDIATE STEP-BY-STEP ACTION PLAN: Give a sequential, practical checklist of what the tenant needs to do right now to defend their housing stability and protect their rights.\n"
+                "3. REGIONAL LEGAL AID GROUPS: Point the tenant toward real, community-based legal aid groups operating in their specific city or county (e.g., Silicon Valley, East Bay, or San Francisco).\n"
+                "4. OFFICIAL LEGAL & SELF-HELP LINKS: You MUST explicitly append the following verified reference links at the very end of your response, formatting them clearly as Markdown links:\n"
+                "   - California Landlord/Tenant Guide Handbook: https://dre.ca.gov/files/pdf/2025_Landlord_Tenant_Guide.pdf\n"
+                "   - LawHelpCA Housing Issues Portal: https://www.lawhelpca.org/issues/housing/landlord-and-tenant-issues\n"
+                "   - California Courts Self-Help & Center Finder: https://selfhelp.courts.ca.gov/self-help/find-self-help?s=san%20francisco&id=4203\n"
+                "   - California Department of Real Estate (DRE): https://dre.ca.gov/\n\n"
+                "Disclaimer: Conclude with a clear notice that this information is for operational guidance and educational purposes only, and does not constitute formal legal counsel."
             )
             
             response = client.models.generate_content(
@@ -61,13 +65,13 @@ def run_housing_ai():
                 contents=f"Title: {ISSUE_TITLE}\nBody: {ISSUE_BODY}",
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
-                    temperature=0.3  # Slightly higher for balanced, fluid advice generation
+                    temperature=0.2
                 )
             )
             ai_analysis = response.text
 
             # 3. Drop data into our persistence tables
-            print("📝 Storing expert AI response into Neon...")
+            print("📝 Storing actionable solution into Neon...")
             cur.execute("""
                 INSERT INTO chat_sessions (metadata)
                 VALUES (%s)
