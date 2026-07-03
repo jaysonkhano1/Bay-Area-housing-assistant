@@ -1,7 +1,8 @@
 import os
 import sys
 import psycopg
-from google import generativeai as genai
+from google import genai
+from google.genai import types
 
 # Grab environment details
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -13,13 +14,13 @@ if not DATABASE_URL or not GEMINI_API_KEY:
     print("❌ Error: Missing configuration secrets (DATABASE_URL or GEMINI_API_KEY).")
     sys.exit(1)
 
-# Configure Gemini
-genai.configure(api_key=GEMINI_API_KEY)
+# Initialize the modern Gemini Client
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 def run_housing_ai():
     print("🚀 GitHub Action triggered! Processing housing entry...")
 
-    # 1. Connect to Neon and ensure tables exist BEFORE we insert anything
+    # 1. Connect to Neon and ensure tables exist
     print("💾 Connecting to Neon Postgres database...")
     with psycopg.connect(DATABASE_URL) as conn:
         with conn.cursor() as cur:
@@ -43,17 +44,21 @@ def run_housing_ai():
             """)
             conn.commit()
 
-            # 2. Ask Gemini to clean and structure the data
+            # 2. Ask Gemini to clean and structure the data using the current SDK
             print("🧠 Running issue text through Gemini AI...")
             system_instruction = (
                 "You are an AI processing assistant for the Bay Area Housing Stability Assistant.\n"
                 "Take the user issue layout and clean it into a professional, brief summary."
             )
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                generation_config={"temperature": 0.0}
+            
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=f"Title: {ISSUE_TITLE}\nBody: {ISSUE_BODY}",
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.0
+                )
             )
-            response = model.generate_content([system_instruction, f"Title: {ISSUE_TITLE}\nBody: {ISSUE_BODY}"])
             ai_summary = response.text
 
             # 3. Drop data into our persistence tables

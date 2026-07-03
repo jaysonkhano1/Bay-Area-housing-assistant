@@ -1,2 +1,2 @@
 psycopg[binary]
-google-generativeai
+google-genai
