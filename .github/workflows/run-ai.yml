@@ -1,28 +1,28 @@
-name: Run Housing AI Automation
+name: Housing AI Processor
 
 on:
   issues:
-    types: [opened]
+    types: [opened, edited]
 
 jobs:
   process-issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-
-      - name: Install Dependencies
+          python-version: '3.11'
+          
+      - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Run Script
+        
+      - name: Run main.py
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # These lines map the GitHub issue data into your Python environment
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: python main.py
