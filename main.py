@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import psycopg
+import time
 from google import genai
 from google.genai import types
 from PIL import Image
@@ -41,7 +42,25 @@ st.markdown("---")
 def run_housing_ai():
     with st.spinner("🧠 Gemini is analyzing your case and generating custom resources..."):
         try:
-            with psycopg.connect(DATABASE_URL) as conn:
+            # Resilient Database Connection with Retry Loop for Neon Cold Starts
+            conn = None
+            max_retries = 3
+            
+            for attempt in range(max_retries):
+                try:
+                    # Added connect_timeout=15 to give the serverless database breathing room to wake up
+                    conn = psycopg.connect(DATABASE_URL, connect_timeout=15)
+                    break 
+                except (psycopg.OperationalError, psycopg.Error) as db_err:
+                    if attempt < max_retries - 1:
+                        # Wait 3 seconds before trying again to allow the DB to finish booting up
+                        time.sleep(3)
+                        continue
+                    else:
+                        raise db_err
+
+            # Once connection is established, execute queries safely
+            with conn:
                 with conn.cursor() as cur:
                     # Keep database schema secure
                     cur.execute("""
@@ -116,7 +135,6 @@ def run_housing_ai():
             st.error(f"❌ Error during processing: {e}")
 
 # 5. TRIGGER ONLY ON BUTTON CLICK
-# Notice that run_housing_ai() is indented inside this button statement!
 if st.button("Analyze Situation & Get Help", type="primary"):
     if not issue_title or not issue_body:
         st.warning("⚠️ Please fill out both the Title and Description fields before submitting.")
